@@ -1,8 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_socketio import SocketIO, emit
-import eventlet
-from eventlet import wsgi
-from myapp import app
 import discord
 from discord.ext import commands
 from discord import Client
@@ -15,6 +12,7 @@ import requests
 import logging
 import asyncio
 import time
+import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -44,7 +42,8 @@ async def on_voice_state_update(member, before, after):
 
 
 def run_bot():
-    bot.run('BOT_TOKEN')
+    discord_token = os.getenv('DISCORD_BOT_TOKEN')
+    bot.run(discord_token)
 
 # Flask server
 app = Flask(__name__)
@@ -437,7 +436,7 @@ def on_connect():
 if __name__ == "__main__":
     t = Thread(target=run_bot)
     t.start()
-    wsgi.server(eventlet.listen(('127.0.0.1', 5000)), app)
+    socketio.run(app, host='0.0.0.0', port=5000)
     
 
     
