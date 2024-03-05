@@ -41,7 +41,7 @@ async def on_voice_state_update(member, before, after):
 
 
 def run_bot():
-    bot.run("discordtoken")
+    bot.run('BOT_TOKEN')
 
 # Flask server
 app = Flask(__name__)
