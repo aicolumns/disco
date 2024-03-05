@@ -1,4 +1,4 @@
 flask_socketio
 discord
 requests
-gunicorn
+eventlet
