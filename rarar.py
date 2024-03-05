@@ -6,6 +6,9 @@ from discord import Client
 from discord.ext import tasks, commands
 from discord.utils import get
 from threading import Thread
+import eventlet
+from eventlet import wsgi
+from myapp import app
 import logging
 import random
 import requests
@@ -436,7 +439,8 @@ def on_connect():
 if __name__ == "__main__":
     t = Thread(target=run_bot)
     t.start()
-    socketio.run(app, host='0.0.0.0', port=5000)
+    if __name__ == '__main__':
+    wsgi.server(eventlet.listen(('0.0.0.0', 5000)), app)
     
 
     
