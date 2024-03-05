@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members in Channel</title>
+    <style>
+    .header {
+    text-align: center;
+    color: #f8f8f2;
+    margin-bottom: 30px;
+}
+    body {
+    background-color: #36393f;
+    color: #ddd;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    padding: 20px;
+}
+
+.content-layout {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.section, .join-section {
+    flex-grow: 1;
+    margin: 0 10px;
+}
+
+.half {
+    width: 45%;
+}
+
+.h1 {
+    text-align: center;
+    color: #f8f8f2;
+}
+#joined-users-count {
+    text-align: center;
+}
+ul {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #2f3136;
+    border-radius: 5px;
+}
+
+ul li {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #4b4e52;
+    color: #b9bbbe;
+}
+
+ul li img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+    border-radius: 50%;
+}
+
+.join-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+/* ランキングの各セクションを適正に配置 */
+#rankings .section {
+    width: calc(50% - 20px);
+}
+#join-button {
+    display: block;
+    width: 200px;
+    height: 50px;
+    margin: 20px auto;
+    background-color: #7289da;
+    color: #fff;
+    border-radius: 5px;
+    text-align: center;
+    line-height: 50px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: background-color 0.3s, box-shadow 0.3s;
+    margin-bottom: 30px;
+}
+
+#join-button:hover {
+    background-color: #5b6eae;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+#members-list, #good-ranking-list, #bad-ranking-list {
+    overflow-y: auto; /* 縦方向スクロール */
+    max-height: 400px; /* 最大の高さ、これを超えるとスクロールが発生 */
+}
+
+#rankings ul {
+    overflow-y: auto; /* 縦方向スクロール */
+    max-height: 200px; /* 最大の高さ。お好みで調整してください */
+}
+    </style>
+</head>
+<body>
+    <h1 class="header">Members in Call</h1>
+    <div class="content-layout">
+        <div class="section half">
+            
+            <ul id="members-list">
+                <!-- メンバーリストのアイテムがここに動的に挿入される -->
+            </ul>
+        </div>
+        <div class="section half">
+            <h2>Role Members in Voice Channel:</h2>
+            <ul id="role-members-list">
+                <!-- ロールメンバーリストのアイテムがここに動的に挿入される -->
+            </ul>
+        </div>
+    </div>
+    <div class="content-layout" id="rankings">
+        <div class="section">
+            <h2>高評価ランキング</h2>
+            <ul id="good-ranking-list">
+                <!-- 高評価ランキングのアイテムがここに動的に挿入される -->
+            </ul>
+        </div>
+        <div class="section">
+            <h2>低評価ランキング</h2>
+            <ul id="bad-ranking-list">
+                <!-- 低評価ランキングのアイテムがここに動的に挿入される -->
+            </ul>
+        </div>
+    </div>
+    <div class="join-section">
+        <!-- Join the Game ボタンを表示 -->
+        
+        <div id="join-button"><p id="joined-users-count"></p>人狼中参加</div>
+    </div>
+
+<!-- ここにJavaScriptを追加 --> 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/check_status')
+        .then(response => response.json())
+        .then(data => {
+            const joinButton = document.getElementById('join-button');
+            if(data.button_state === 'yes') {
+                joinButton.style.display = 'block'; // ボタンを表示
+            } else {
+                joinButton.style.display = 'none'; // ボタンを非表示
+            }
+        })
+        .catch(error => console.error('Error:', error));
+});
+</script>
+    </div>
+    
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        window.onload = function() {
+            var socket = io();
+            socket.on('connect', function() {
+                socket.emit('request_members');
+                socket.emit('request_role_members'); 
+                socket.emit('request_ratings');  // 評価情報を要求
+            });
+            
+            function createRatingButtons(member, socket) {
+                var li = document.createElement('li');
+                var img = document.createElement('img');
+                img.src = member.avatar_url;
+                var span = document.createElement('span');
+                span.textContent = member.name;
+                var goodButton = document.createElement('button');
+                goodButton.textContent = 'Good';
+                goodButton.onclick = function() {
+                    socket.emit('rate_member', {user_id: member.id, name: member.name, rating: 'good'});  // ユーザーIDも一緒に送る
+                };
+                var badButton = document.createElement('button');
+                badButton.textContent = 'Bad';
+                badButton.onclick = function() {
+                    socket.emit('rate_member', {user_id: member.id, name: member.name, rating: 'bad'});  // ユーザーIDも一緒に送る
+                };
+                li.appendChild(img);
+                li.appendChild(span);
+                li.appendChild(goodButton);
+                li.appendChild(badButton);
+                return li;
+            }
+    
+            socket.on('update_ratings', function(ratings) {
+                // 高評価ランキングと低評価ランキングを計算
+                var goodRanking = Object.entries(ratings).sort((a, b) => b[1].good - a[1].good).slice(0, 3);
+                var badRanking = Object.entries(ratings).sort((a, b) => b[1].bad - a[1].bad).slice(0, 3);
+    
+                // ランキングをコンソールに表示
+                console.log(goodRanking);  // 上位3名の高評価ランキングを表示
+                console.log(badRanking);  // 上位3名の低評価ランキングを表示
+    
+                // ランキングリストを取得
+                var goodRankingList = document.getElementById('good-ranking-list');
+                var badRankingList = document.getElementById('bad-ranking-list');
+                goodRankingList.innerHTML = '';
+                badRankingList.innerHTML = '';
+    
+                // 高評価ランキングを反映
+                goodRanking.forEach(([user_id, details]) => {
+                    var li = document.createElement('li');
+                    li.textContent = `${details.name}: ${details.good}票`;  // ユーザー名を表示
+                    goodRankingList.appendChild(li);
+                });
+    
+                // 低評価ランキングを反映
+                badRanking.forEach(([user_id, details]) => {
+                    var li = document.createElement('li');
+                    li.textContent = `${details.name}: ${details.bad}票`; 
+                    badRankingList.appendChild(li);
+                });
+            });
+    
+            socket.on('update_role_members', function(members) {
+                // メンバーリストを更新
+                var roleMembersList = document.getElementById('role-members-list');
+                roleMembersList.innerHTML = '';
+                for (var i = 0; i < members.length; i++) {
+                    var li = createRatingButtons(members[i], socket);
+                    roleMembersList.appendChild(li);
+                }
+            });
+        
+    
+    
+    
+        
+
+            fetch('/check_join_status', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.joined) {
+                    // ユーザーがゲームに参加している場合のみゲームのステータスをチェック
+                    socket.on('start_game', function() {
+                        // ゲームが開始されたときにのみ、ゲームのステータスをチェック
+                        fetch('/check_game_status', { method: 'POST' })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.redirect) {
+                                window.location.href = data.redirect;
+                            }
+                        });
+                    });
+                }
+            });
+        
+            socket.on('update_voice_members', function(members) {  // 通話メンバー情報の更新
+                var membersList = document.getElementById('members-list');
+                membersList.innerHTML = '';
+                for (var i = 0; i < members.length; i++) {
+                    var li = document.createElement('li');
+                    var img = document.createElement('img');
+                    img.src = members[i].avatar_url;
+                    var span = document.createElement('span');
+                    span.textContent = members[i].name;
+                    li.appendChild(img);
+                    li.appendChild(span);
+                    membersList.appendChild(li);
+                }
+            });
+        
+            // ゲームに参加したかどうかのフラグを追加
+            var isJoined = false;
+        
+            socket.on('update_joined_users', function(data) {
+                // 参加ユーザー数を表示
+                document.getElementById('joined-users-count').textContent = data.count;
+        
+                if (isJoined && data.count >= 2) {
+                    // 自分がゲームに参加しており、参加者が2人以上になった場合にのみリダイレクト
+                    window.location = 'http://127.0.0.1:5000/game_index';
+                }
+            });
+        
+            document.getElementById('join-button').addEventListener('click', function() {
+                fetch('/join', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.full) {
+                            // ゲームが満員であれば「Join the Game」ボタンを無効にする
+                            document.getElementById('join-button').disabled = true;
+                        } else if (data.redirect) {
+                            // ゲームに参加したのでフラグを保存し、リダイレクト先のURLが存在する場合のみページをリロード
+                            localStorage.setItem('joined_game', 'true');
+                            window.location = data.redirect;
+                        }
+                    });
+            });
+        
+            socket.on('start_game', function() {
+    // ゲームが開始されたときにサーバーからの通知を受け取る
+    if (localStorage.getItem('joined_game') === 'true') {
+        // ユーザーがゲームに参加している場合だけリダイレクト
+        window.location.href = '/game_index';
+    }
+});
+
+
+
+
+
+}
+
+        socket.on('update_role_members', function(members) {
+            var roleMembersList = document.getElementById('role-members-list');
+            roleMembersList.innerHTML = '';
+            for (var i = 0; i < members.length; i++) {
+                var li = createRatingButtons(members[i], socket);
+                roleMembersList.appendChild(li);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+    fetch('/check_status')
+        .then(response => response.json())
+        .then(data => {
+            const joinButton = document.getElementById('join-button');
+            if(data.button_state === 'yes') {
+                joinButton.style.display = 'block'; // ボタンを表示
+            } else {
+                joinButton.style.display = 'none'; // ボタンを非表示
+            }
+        })
+        .catch(error => console.error('Error:', error));
+});
+
+
+
+    </script>
+    
+        
+
+    
+        
+    
+</body>
+</html>

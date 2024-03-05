@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        window.onload = function() {
+            if (!localStorage.getItem('joined_game')) {
+                // ゲームに参加していないのでホームページにリダイレクト
+                window.location.href = '/';
+            } else {
+                // ゲームの内容を表示するコードをここに追加
+            }
+
+            // サーバーサイドからのイベントを受け取るリスナーを追加
+            socket.on('correct_answer', function() {
+                // 正解のメッセージを表示
+                document.getElementById('answer_result').textContent = '正解です！';
+            });
+
+            socket.on('incorrect_answer', function() {
+                // 不正解のメッセージを表示
+                document.getElementById('answer_result').textContent = '不正解です...';
+            });
+
+            // ページ読み込み時にユーザーの回答状況を確認
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/check_answer_status', true);
+            xhr.onreadystatechange = function() {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    var response = JSON.parse(this.responseText);
+                    if (response.submitted) {
+                        // ユーザーがすでに回答を提出している場合、すべてのボタンを無効化
+                        var buttons = document.getElementsByTagName('button');
+                        for (var i = 0; i < buttons.length; i++) {
+                            buttons[i].disabled = true;
+                        }
+                        // 「回答済み」のメッセージを表示
+                        document.getElementById('submission_status').textContent = '回答済み';
+                    }
+                }
+            }
+            xhr.send();
+        }
+
+        function submitAnswer(answer, button) {
+            document.getElementById('answer').value = answer;
+            event.preventDefault();  // フォームの送信をキャンセル
+            var form = document.getElementById('answer-form');
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/submit_answer', true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = function() {
+                if (this.readyState === XMLHttpRequest.DONE && this.status === 200) {
+                    // 送信が完了したときの処理
+                    var response = JSON.parse(this.responseText);
+                    if (response.submitted) {
+                        // 回答が送信された後、「回答済み」と表示
+                        document.getElementById('submission_status').textContent = '回答済み';
+                        // すべてのボタンを無効化
+                        var buttons = document.getElementsByTagName('button');
+                        for (var i = 0; i < buttons.length; i++) {
+                            buttons[i].disabled = true;
+                        }
+                    } else if (response.message) {
+                        // メッセージがある場合（例：既に回答済みの場合）は表示
+                        document.getElementById('submission_status').textContent = response.message;
+                    }
+                }
+            }
+            xhr.send('answer=' + encodeURIComponent(answer));
+        }
+    </script>
+</head>
+<body>
+    <h1>Game Start!</h1>
+    <h2>Question:</h2>
+    <p>{{ question }}</p>
+    <ul>
+        {% for choice in choices %}
+        <li><button onclick="submitAnswer('{{ choice }}', this)">{{ choice }}</button></li>
+        {% endfor %}
+    </ul>
+    <form id="answer-form" action="/submit_answer" method="post" style="display: none;">
+        <input id="answer" type="hidden" name="answer">
+    </form>
+    <h2 id="answer_result"></h2>  <!-- 正解か不正解のメッセージを表示する場所 -->
+    <h2 id="submission_status"></h2>  <!-- 回答済みかどうかのメッセージを表示する場所 -->
+</body>
+</html>
+
+
+
+
+
