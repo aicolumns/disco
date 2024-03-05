@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, abort
 from flask_socketio import SocketIO, emit
+import eventlet
+from eventlet import wsgi
+from myapp import app
 import discord
 from discord.ext import commands
 from discord import Client
@@ -434,7 +437,7 @@ def on_connect():
 if __name__ == "__main__":
     t = Thread(target=run_bot)
     t.start()
-    socketio.run(app, host='0.0.0.0', port=5000)
+    wsgi.server(eventlet.listen(('127.0.0.1', 5000)), app)
     
 
     
